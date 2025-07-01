@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoan_chi_phi_app/screens/quyet_toan_giao_khoan.dart';
 import 'account_screen.dart';
 import 'ma_giao_khoan_screen.dart';
 import 'tai_san_screen.dart';
@@ -26,6 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     'Định mức',
     'Quyết toán',
     'Chi tiết giao khoán',
+    'Quyết toán giao khoán',
   ];
   final List<IconData> _menuIcons = [
     Icons.people,
@@ -35,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Icons.list_alt,
     Icons.calculate,
     Icons.assignment,
+    Icons.details,
     Icons.details,
   ];
 
@@ -85,6 +88,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ? const QuyetToanScreen()
                     : _selectedIndex == 7
                     ? const ChiTietGiaoKhoanScreen()
+                    : _selectedIndex == 8
+                    ? const QuyetToanGiaoKhoan()
                     : Center(
                       child: Text(
                         'Chức năng: ${_menuTitles[_selectedIndex]}\n(Đang phát triển)',
