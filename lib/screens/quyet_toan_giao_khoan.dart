@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:khoan_chi_phi_app/services/api_service.dart';
+import 'package:intl/intl.dart';
 
 class QuyetToanGiaoKhoan extends StatefulWidget {
   const QuyetToanGiaoKhoan({super.key});
@@ -122,8 +123,11 @@ class VatTuExcelTablePage extends StatelessWidget {
               3: FixedColumnWidth(50),
               4: FixedColumnWidth(70),
               5: FixedColumnWidth(230),
+              11: FixedColumnWidth(120),
+              13: FixedColumnWidth(120),
+              14: FixedColumnWidth(120),
             },
-            defaultColumnWidth: FixedColumnWidth(80),
+            defaultColumnWidth: FixedColumnWidth(65),
             border: TableBorder.all(color: Colors.black26, width: 1),
             children: [
               // Header dòng 1
@@ -189,15 +193,27 @@ List<TableRow> fillData(List<Map<String, dynamic>> items){
                 '',
                 '',
                 items[i]["danhSachTaiSan"][j]["soLuongKeHoachNgoaiKhoan"]?.toString() ?? '',
-                ((items[i]["danhSachTaiSan"][j]["soLuongKeHoachNgoaiKhoan"] ?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"] ?? 0))?.toString() ?? '',
+                ((items[i]["danhSachTaiSan"][j]["soLuongKeHoachNgoaiKhoan"] ?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"] ?? 0))?.toString().toCurrency() ?? '',
                 items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?.toString() ?? '',
-                ((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0))?.toString() ?? '',
-                (((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0)) - ((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0)))?.toString() ?? '',
+                ((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0))?.toString().toCurrency() ?? '',
+                (((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0)) - ((items[i]["danhSachTaiSan"][j]["soLuongKeHoachNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0)))?.toString().toCurrency() ?? '',
               ]),);
     }
   }
   return rows;
 }
+extension StringMoneyFormat on String {
+  String toCurrency({String locale = 'vi_VN'}) {
+    try {
+      final numValue = num.parse(this.replaceAll(',', ''));
+      final formatter = NumberFormat.currency(locale: locale, symbol: '₫');
+      return formatter.format(numValue).trim(); // Ví dụ: 1.000.000 ₫
+    } catch (e) {
+      return this;
+    }
+  }
+}
+
 Widget _headerCell(String text, {int rowSpan = 1, int colSpan = 1}) {
   return Container(
     alignment: Alignment.center,
