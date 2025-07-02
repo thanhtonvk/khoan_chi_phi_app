@@ -88,13 +88,13 @@ class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
                       TextFormField(
                         controller: idGiaoKhoanController,
                         decoration: const InputDecoration(
-                          labelText: 'ID Giao khoán',
+                          labelText: 'ID Tài sản',
                           prefixIcon: Icon(Icons.link),
                         ),
                         validator:
                             (v) =>
                                 v == null || v.isEmpty
-                                    ? 'Nhập ID giao khoán'
+                                    ? 'Nhập ID tài sản'
                                     : null,
                       ),
                       const SizedBox(height: 8),
@@ -276,7 +276,7 @@ class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
                       child: DataTable(
                         columns: const [
                           DataColumn(label: Text('ID')),
-                          DataColumn(label: Text('ID Giao khoán')),
+                          DataColumn(label: Text('ID Tài sản')),
                           DataColumn(label: Text('Định mức gốc')),
                           DataColumn(label: Text('Hệ số điều chỉnh')),
                           DataColumn(label: Text('Số lượng KH ngoài khoán')),
