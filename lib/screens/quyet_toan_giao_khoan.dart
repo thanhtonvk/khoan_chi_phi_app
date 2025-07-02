@@ -12,37 +12,24 @@ class _QuyetToanGiaoKhoanState extends State<QuyetToanGiaoKhoan> {
   final ApiService api = ApiService();
   List<Map<String, dynamic>> items = [];
   List<Map<String, dynamic>> itemsGiaoKhoan = [];
+  List<Map<String, dynamic>> itemsMerge = [];
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchItems();
     _fetchChiTietGiaoKhoans();
-  }
-
-  Future<void> _fetchItems() async {
-    setState(() => isLoading = true);
-    try {
-      final data = await api.fetchTaiSans();
-      setState(() {
-        items = List<Map<String, dynamic>>.from(data);
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lỗi tải danh sách quyết toán!')),
-      );
-    } finally {
-      setState(() => isLoading = false);
-    }
   }
 
   Future<void> _fetchChiTietGiaoKhoans() async {
     setState(() => isLoading = true);
     try {
       final data = await api.fetchChiTietGiaoKhoans();
+      itemsGiaoKhoan = List<Map<String, dynamic>>.from(data);
+      final data2 = await api.fetchTaiSans();
+      items = List<Map<String, dynamic>>.from(data2);
+      itemsMerge = mergeData(vatTuList:items,chiTietList:itemsGiaoKhoan);
       setState(() {
-        itemsGiaoKhoan = List<Map<String, dynamic>>.from(data);
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,7 +39,47 @@ class _QuyetToanGiaoKhoanState extends State<QuyetToanGiaoKhoan> {
       setState(() => isLoading = false);
     }
   }
+List<Map<String, dynamic>> mergeData({
+  required List<Map<String, dynamic>> vatTuList,
+  required List<Map<String, dynamic>> chiTietList,
+}) {
+  // Tạo map nhanh từ idTaiSan -> chiTiet
+  final chiTietMap = {
+    for (var item in chiTietList) item['idGiaoKhoan']: item,
+  };
 
+  // Gom nhóm theo các trường yêu cầu
+  final Map<String, List<Map<String, dynamic>>> grouped = {};
+
+  for (var vatTu in vatTuList) {
+    final idTaiSan = vatTu['idTaiSan'];
+
+    // Tạo key gom nhóm
+    final key = "${vatTu['idGiaoKhoan']}";
+
+    // Nếu tài sản có chi tiết => merge thêm
+    if (chiTietMap.containsKey(idTaiSan)) {
+      vatTu = {
+        ...chiTietMap[idTaiSan]!,
+        ...vatTu,
+      };
+      grouped.putIfAbsent(key, () => []);
+      grouped[key]!.add(vatTu);
+    }
+  }
+
+  // Chuyển map thành list kết quả cuối
+  return grouped.entries.map((entry) {
+    final parts = entry.key.split('|');
+    return {
+      'idGiaoKhoan': parts[0],
+      'tenVatTu': entry.value[0]['tenVatTu'],
+      'donViTinh': entry.value[0]['donViTinh'],
+      'donGiaBinhQuanHienTai': entry.value[0]['donGiaBinhQuanHienTai'],
+      'danhSachTaiSan': entry.value,
+    };
+  }).toList();
+}
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -70,7 +97,7 @@ class _QuyetToanGiaoKhoanState extends State<QuyetToanGiaoKhoan> {
             ],
           ),
           const SizedBox(height: 16),
-          Expanded(child: VatTuExcelTablePage())
+          Expanded(child: VatTuExcelTablePage(items: itemsMerge,))
          ],
       ),
     );
@@ -78,7 +105,8 @@ class _QuyetToanGiaoKhoanState extends State<QuyetToanGiaoKhoan> {
 }
 
 class VatTuExcelTablePage extends StatelessWidget {
-  const VatTuExcelTablePage({Key? key}) : super(key: key);
+  final List<Map<String, dynamic>> items;
+  const VatTuExcelTablePage({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
@@ -119,134 +147,57 @@ class VatTuExcelTablePage extends StatelessWidget {
                 ],
               ),
               // Header dòng 2
-
+              
               // Dữ liệu mẫu (5 dòng đầu)
-              _dataRow([
-                '',
-                'GL01158VNMM',
-                '1',
-                'KT',
-                'KT10',
-                'Gỗ Bạch đàn, keo chèn lò Φ8:-12 cm L=2,2m',
-                'm³',
-                '1.054.664',
-                '',
-                '',
-                '1,000',
-                '1.054.664',
-                '2,000',
-                '2.109.328',
-                '-1.054.664',
-              ]),
-              _dataRow([
-                '',
-                'GL01206VNMM',
-                '1',
-                'KT',
-                '',
-                'Gỗ Keo chèn lò   Φ8-:-12cm L=2,4 m',
-                'm³',
-                '1.054.664',
-                '',
-                '',
-                '1,000',
-                '1.054.664',
-                '3,000',
-                '3.163.993',
-                '-2.109.328',
-              ]),
-              _dataRow([
-                '',
-                'GL01217VNMM',
-                '1',
-                'KT',
-                '',
-                'Gỗ Bạch đàn chèn lò   Φ6 -:-8cm L=2,4 m',
-                'm³',
-                '1.054.664',
-                '',
-                '',
-                '1,000',
-                '1.054.664',
-                '3,000',
-                '3.163.993',
-                '-2.109.328',
-              ]),
-              _dataRow([
-                '',
-                'GL01157VNMM',
-                '1',
-                'KT',
-                '',
-                'Gỗ bạch đàn , keo chèn lò Φ8-:-12 cm L=2,4m',
-                'm³',
-                '1.054.664',
-                '',
-                '',
-                '1,000',
-                '1.054.664',
-                '3,000',
-                '3.163.993',
-                '-2.109.328',
-              ]),
-              _dataRow([
-                '',
-                '',
-                '1',
-                'KT',
-                'KT12',
-                'Thuốc nổ NTLT-2',
-                'kg',
-                '42.578',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
-              ],highlight: true),
-              _dataRow([
-                '',
-                'TN10002VNMM',
-                '1',
-                'KT',
-                '',
-                'Thuốc nổ nhũ tương an toàn dùng cho mỏ hầm lò có khí nổ (NTLT) - D36  ',
-                'Kg',
-                '42.578',
-                '',
-                '',
-                '2,000',
-                '85.157',
-                '3,000',
-                '127.735',
-                '-42.578',
-              ]),
-              _dataRow([
-                '',
-                'TN10006VNMM',
-                '1',
-                'KT',
-                '',
-                'Thuốc nổ nhũ tương an toàn dùng cho mỏ hầm lò có khí nổ (NTLT2) - D36  ',
-                'Kg',
-                '42.578',
-                '',
-                '',
-                '2,000',
-                '85.157',
-                '1,000',
-                '42.578',
-                '42.578',
-              ]),
+              ...fillData(items),
             ],
           ),
         ),
       );
   }
 }
-
+List<TableRow> fillData(List<Map<String, dynamic>> items){
+  final List<TableRow> rows = [];
+  for (int i =0; i < items.length; i ++) {
+    rows.add(_dataRow([
+                '',
+                '',
+                '',
+                items[i]["idGiaoKhoan"].toString(),
+                items[i]["idGiaoKhoan"].toString(),
+                items[i]["tenVatTu"].toString(),
+                items[i]["donViTinh"].toString(),
+                items[i]["donGiaBinhQuanHienTai"].toString(),
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+              ],highlight: true),);
+    for (int j = 0; j <items[i]["danhSachTaiSan"].toList().length; j++) {
+      rows.add(_dataRow([
+                '',
+                items[i]["danhSachTaiSan"][j]["idTaiSan"].toString(),
+                '1',
+                '',
+                '',
+                items[i]["danhSachTaiSan"][j]["tenVatTu"].toString(),
+                items[i]["danhSachTaiSan"][j]["donViTinh"].toString(),
+                items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"].toString(),
+                '',
+                '',
+                items[i]["danhSachTaiSan"][j]["soLuongKeHoachNgoaiKhoan"]?.toString() ?? '',
+                ((items[i]["danhSachTaiSan"][j]["soLuongKeHoachNgoaiKhoan"] ?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"] ?? 0))?.toString() ?? '',
+                items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?.toString() ?? '',
+                ((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0))?.toString() ?? '',
+                (((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0)) - ((items[i]["danhSachTaiSan"][j]["soLuongThucHienNgoaiKhoan"]?? 0) * (items[i]["danhSachTaiSan"][j]["donGiaBinhQuanHienTai"]?? 0)))?.toString() ?? '',
+              ]),);
+    }
+  }
+  return rows;
+}
 Widget _headerCell(String text, {int rowSpan = 1, int colSpan = 1}) {
   return Container(
     alignment: Alignment.center,
