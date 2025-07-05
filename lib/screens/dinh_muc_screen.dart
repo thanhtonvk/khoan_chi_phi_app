@@ -11,12 +11,16 @@ class DinhMucScreen extends StatefulWidget {
 class _DinhMucScreenState extends State<DinhMucScreen> {
   final ApiService api = ApiService();
   List<Map<String, dynamic>> items = [];
+  List<Map<String, dynamic>> maGiaoKhoans = [];
+  List<Map<String, dynamic>> mucKhaus = [];
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _fetchItems();
+    _fetchMaGiaoKhoans();
+    _fetchMucKhaus();
   }
 
   Future<void> _fetchItems() async {
@@ -33,6 +37,48 @@ class _DinhMucScreenState extends State<DinhMucScreen> {
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _fetchMaGiaoKhoans() async {
+    try {
+      final data = await api.fetchMaGiaoKhoans();
+      setState(() {
+        maGiaoKhoans = List<Map<String, dynamic>>.from(data);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi tải danh sách mã giao khoán!')),
+      );
+    }
+  }
+
+  Future<void> _fetchMucKhaus() async {
+    try {
+      final data = await api.fetchMucKhaus();
+      setState(() {
+        mucKhaus = List<Map<String, dynamic>>.from(data);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi tải danh sách mục khấu!')),
+      );
+    }
+  }
+
+  String _getTenGiaoKhoan(String idGiaoKhoan) {
+    final giaoKhoan = maGiaoKhoans.firstWhere(
+      (e) => e['idGiaoKhoan']?.toString() == idGiaoKhoan,
+      orElse: () => <String, dynamic>{},
+    );
+    return giaoKhoan['tenGiaoKhoan'] ?? '';
+  }
+
+  String _getTenMucKhau(String idMucKhau) {
+    final mucKhau = mucKhaus.firstWhere(
+      (e) => e['idMucKhau']?.toString() == idMucKhau,
+      orElse: () => <String, dynamic>{},
+    );
+    return mucKhau['tenMucKhau'] ?? '';
   }
 
   void _showDialog({Map<String, dynamic>? item, int? index}) {
@@ -75,29 +121,65 @@ class _DinhMucScreenState extends State<DinhMucScreen> {
                         enabled: !isEdit,
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: idGiaoKhoanController,
+                      DropdownButtonFormField<String>(
+                        value:
+                            idGiaoKhoanController.text.isEmpty
+                                ? null
+                                : idGiaoKhoanController.text,
                         decoration: const InputDecoration(
-                          labelText: 'ID Giao khoán',
+                          labelText: 'Mã giao khoán',
                           prefixIcon: Icon(Icons.link),
                         ),
+                        items:
+                            maGiaoKhoans
+                                .map(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e['idGiaoKhoan']?.toString(),
+                                    child: Text('${e['idGiaoKhoan']}'),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            idGiaoKhoanController.text = value;
+                          }
+                        },
                         validator:
-                            (v) =>
-                                v == null || v.isEmpty
-                                    ? 'Nhập ID giao khoán'
+                            (value) =>
+                                value == null || value.isEmpty
+                                    ? 'Chọn mã giao khoán'
                                     : null,
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: idMucKhauController,
+                      DropdownButtonFormField<String>(
+                        value:
+                            idMucKhauController.text.isEmpty
+                                ? null
+                                : idMucKhauController.text,
                         decoration: const InputDecoration(
-                          labelText: 'ID Mục khẩu',
+                          labelText: 'Mục khấu',
                           prefixIcon: Icon(Icons.link),
                         ),
+                        items:
+                            mucKhaus
+                                .map(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e['idMucKhau']?.toString(),
+                                    child: Text(
+                                      '${e['idMucKhau']} - ${e['tenMucKhau'] ?? ''}',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            idMucKhauController.text = value;
+                          }
+                        },
                         validator:
-                            (v) =>
-                                v == null || v.isEmpty
-                                    ? 'Nhập ID mục khẩu'
+                            (value) =>
+                                value == null || value.isEmpty
+                                    ? 'Chọn mục khấu'
                                     : null,
                       ),
                       const SizedBox(height: 8),
@@ -224,8 +306,8 @@ class _DinhMucScreenState extends State<DinhMucScreen> {
                       child: DataTable(
                         columns: const [
                           DataColumn(label: Text('ID')),
-                          DataColumn(label: Text('ID Giao khoán')),
-                          DataColumn(label: Text('ID Mục khẩu')),
+                          DataColumn(label: Text('Mã giao khoán')),
+                          DataColumn(label: Text('Mục khấu')),
                           DataColumn(label: Text('Định mức')),
                           DataColumn(label: Text('Hành động')),
                         ],
@@ -233,10 +315,47 @@ class _DinhMucScreenState extends State<DinhMucScreen> {
                           final item = items[i];
                           return DataRow(
                             cells: [
-                              DataCell(Text(item['idDinhMuc'] ?? '')),
-                              DataCell(Text(item['idGiaoKhoan'] ?? '')),
-                              DataCell(Text(item['idMucKhau'] ?? '')),
-                              DataCell(Text(item['dinhMuc']?.toString() ?? '')),
+                              DataCell(
+                                Container(
+                                  width: 100,
+                                  child: Text(
+                                    item['idDinhMuc'] ?? '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 120,
+                                  child: Text(
+                                    '${item['idGiaoKhoan'] ?? ''}',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 200,
+                                  child: Text(
+                                    '${item['idMucKhau'] ?? ''} - ${_getTenMucKhau(item['idMucKhau'] ?? '')}',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 120,
+                                  child: Text(
+                                    item['dinhMuc']?.toString() ?? '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
                               DataCell(
                                 Row(
                                   children: [

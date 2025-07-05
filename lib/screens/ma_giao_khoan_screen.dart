@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../utils/money_formatter.dart';
 
 class MaGiaoKhoanScreen extends StatefulWidget {
   const MaGiaoKhoanScreen({super.key});
@@ -260,14 +261,35 @@ class _MaGiaoKhoanScreenState extends State<MaGiaoKhoanScreen> {
                               DataCell(Text(item['tenVatTuGiaoKhoan'] ?? '')),
                               DataCell(Text(item['donViTinh'] ?? '')),
                               DataCell(
-                                Text(
-                                  item['donGiaBinhQuanTruoc']?.toString() ?? '',
+                                Container(
+                                  constraints: BoxConstraints(maxWidth: 120),
+                                  child: Text(
+                                    MoneyFormatter.formatVND(
+                                      item['donGiaBinhQuanTruoc'],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
                               ),
                               DataCell(
-                                Text(
-                                  item['donGiaBinhQuanHienTai']?.toString() ??
-                                      '',
+                                Container(
+                                  constraints: BoxConstraints(maxWidth: 120),
+                                  child: Text(
+                                    MoneyFormatter.formatVND(
+                                      item['donGiaBinhQuanHienTai'],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
                               ),
                               DataCell(

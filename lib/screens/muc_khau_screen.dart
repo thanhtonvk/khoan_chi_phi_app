@@ -11,12 +11,14 @@ class MucKhauScreen extends StatefulWidget {
 class _MucKhauScreenState extends State<MucKhauScreen> {
   final ApiService api = ApiService();
   List<Map<String, dynamic>> items = [];
+  List<Map<String, dynamic>> khaus = [];
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _fetchItems();
+    _fetchKhaus();
   }
 
   Future<void> _fetchItems() async {
@@ -33,6 +35,27 @@ class _MucKhauScreenState extends State<MucKhauScreen> {
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _fetchKhaus() async {
+    try {
+      final data = await api.fetchKhaus();
+      setState(() {
+        khaus = List<Map<String, dynamic>>.from(data);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lỗi tải danh sách khấu!')));
+    }
+  }
+
+  String _getTenKhau(String idKhau) {
+    final khau = khaus.firstWhere(
+      (e) => e['idKhau']?.toString() == idKhau,
+      orElse: () => <String, dynamic>{},
+    );
+    return khau['tenKhau'] ?? '';
   }
 
   void _showDialog({Map<String, dynamic>? item, int? index}) {
@@ -75,15 +98,36 @@ class _MucKhauScreenState extends State<MucKhauScreen> {
                         enabled: !isEdit,
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: idKhauController,
+                      DropdownButtonFormField<String>(
+                        value:
+                            idKhauController.text.isEmpty
+                                ? null
+                                : idKhauController.text,
                         decoration: const InputDecoration(
-                          labelText: 'ID Khẩu',
+                          labelText: 'Khấu',
                           prefixIcon: Icon(Icons.link),
                         ),
+                        items:
+                            khaus
+                                .map(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e['idKhau']?.toString(),
+                                    child: Text(
+                                      '${e['idKhau']} - ${e['tenKhau'] ?? ''}',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            idKhauController.text = value;
+                          }
+                        },
                         validator:
-                            (v) =>
-                                v == null || v.isEmpty ? 'Nhập ID khẩu' : null,
+                            (value) =>
+                                value == null || value.isEmpty
+                                    ? 'Chọn khấu'
+                                    : null,
                       ),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -221,7 +265,7 @@ class _MucKhauScreenState extends State<MucKhauScreen> {
                       child: DataTable(
                         columns: const [
                           DataColumn(label: Text('ID')),
-                          DataColumn(label: Text('ID Khẩu')),
+                          DataColumn(label: Text('Khấu')),
                           DataColumn(label: Text('Tên mục khẩu')),
                           DataColumn(label: Text('Viết tắt')),
                           DataColumn(label: Text('Hành động')),
@@ -230,10 +274,48 @@ class _MucKhauScreenState extends State<MucKhauScreen> {
                           final item = items[i];
                           return DataRow(
                             cells: [
-                              DataCell(Text(item['idMucKhau'] ?? '')),
-                              DataCell(Text(item['idKhau'] ?? '')),
-                              DataCell(Text(item['tenMucKhau'] ?? '')),
-                              DataCell(Text(item['vietTat'] ?? '')),
+                              DataCell(
+                                Container(
+                                  width: 100,
+                                  child: Text(
+                                    item['idMucKhau'] ?? '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 150,
+                                  child: Text(
+                                    _getTenKhau(item['idKhau'] ?? ''),
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 200,
+                                  child: Text(
+                                    item['tenMucKhau'] ?? '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 100,
+                                  child: Text(
+                                    item['vietTat'] ?? '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
                               DataCell(
                                 Row(
                                   children: [

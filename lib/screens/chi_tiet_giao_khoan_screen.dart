@@ -11,12 +11,16 @@ class ChiTietGiaoKhoanScreen extends StatefulWidget {
 class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
   final ApiService api = ApiService();
   List<Map<String, dynamic>> items = [];
+  List<Map<String, dynamic>> taiSans = [];
+  List<Map<String, dynamic>> dinhMucs = [];
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _fetchItems();
+    _fetchTaiSans();
+    _fetchDinhMucs();
   }
 
   Future<void> _fetchItems() async {
@@ -33,6 +37,59 @@ class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _fetchTaiSans() async {
+    try {
+      final data = await api.fetchTaiSans();
+      setState(() {
+        taiSans = List<Map<String, dynamic>>.from(data);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi tải danh sách tài sản!')),
+      );
+    }
+  }
+
+  Future<void> _fetchDinhMucs() async {
+    try {
+      final data = await api.fetchDinhMucs();
+      setState(() {
+        dinhMucs = List<Map<String, dynamic>>.from(data);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lỗi tải danh sách định mức!')),
+      );
+    }
+  }
+
+  String _getTenTaiSan(String idTaiSan) {
+    final taiSan = taiSans.firstWhere(
+      (e) => e['idTaiSan']?.toString() == idTaiSan,
+      orElse: () => <String, dynamic>{},
+    );
+    return taiSan['tenVatTu'] ?? '';
+  }
+
+  double _getDinhMucFromTaiSan(String idTaiSan) {
+    // Tìm định mức dựa trên ID tài sản
+    for (var dinhMuc in dinhMucs) {
+      // Giả sử có mối quan hệ giữa tài sản và định mức
+      // Cần điều chỉnh logic này theo cấu trúc dữ liệu thực tế
+      if (dinhMuc['idTaiSan']?.toString() == idTaiSan) {
+        return dinhMuc['dinhMuc']?.toDouble() ?? 0.0;
+      }
+    }
+    return 0.0;
+  }
+
+  double _getHeSoDieuChinhFromTaiSan(String idTaiSan) {
+    // Tìm hệ số điều chỉnh dựa trên ID tài sản
+    // Có thể cần thêm API riêng cho hệ số điều chỉnh
+    // Tạm thời trả về 1.0
+    return 1.0;
   }
 
   void _showDialog({Map<String, dynamic>? item, int? index}) {
@@ -69,7 +126,7 @@ class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
             content: Form(
               key: _formKey,
               child: SizedBox(
-                width: 400,
+                width: double.infinity,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -85,16 +142,40 @@ class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
                         enabled: !isEdit,
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: idGiaoKhoanController,
+                      DropdownButtonFormField<String>(
+                        value:
+                            idGiaoKhoanController.text.isEmpty
+                                ? null
+                                : idGiaoKhoanController.text,
                         decoration: const InputDecoration(
-                          labelText: 'ID Tài sản',
+                          labelText: 'Tài sản',
                           prefixIcon: Icon(Icons.link),
                         ),
+                        items:
+                            taiSans
+                                .map(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e['idTaiSan']?.toString(),
+                                    child: Text(
+                                      '${e['idTaiSan']} - ${e['tenVatTu'] ?? ''}',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            idGiaoKhoanController.text = value;
+                            // Tự động điền định mức gốc và hệ số điều chỉnh
+                            final dinhMuc = _getDinhMucFromTaiSan(value);
+                            final heSo = _getHeSoDieuChinhFromTaiSan(value);
+                            dinhMucGocController.text = dinhMuc.toString();
+                            heSoDieuChinhController.text = heSo.toString();
+                          }
+                        },
                         validator:
-                            (v) =>
-                                v == null || v.isEmpty
-                                    ? 'Nhập ID tài sản'
+                            (value) =>
+                                value == null || value.isEmpty
+                                    ? 'Chọn tài sản'
                                     : null,
                       ),
                       const SizedBox(height: 8),
@@ -276,7 +357,7 @@ class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
                       child: DataTable(
                         columns: const [
                           DataColumn(label: Text('ID')),
-                          DataColumn(label: Text('ID Tài sản')),
+                          DataColumn(label: Text('Tài sản')),
                           DataColumn(label: Text('Định mức gốc')),
                           DataColumn(label: Text('Hệ số điều chỉnh')),
                           DataColumn(label: Text('Số lượng KH ngoài khoán')),
@@ -288,25 +369,59 @@ class _ChiTietGiaoKhoanScreenState extends State<ChiTietGiaoKhoanScreen> {
                           return DataRow(
                             cells: [
                               DataCell(Text(item['idChiTietGiaoKhoan'] ?? '')),
-                              DataCell(Text(item['idGiaoKhoan'] ?? '')),
                               DataCell(
-                                Text(item['dinhMucGoc']?.toString() ?? ''),
-                              ),
-                              DataCell(
-                                Text(item['heSoDieuChinh']?.toString() ?? ''),
-                              ),
-                              DataCell(
-                                Text(
-                                  item['soLuongKeHoachNgoaiKhoan']
-                                          ?.toString() ??
-                                      '',
+                                Container(
+                                  width: 200,
+                                  child: Text(
+                                    '${item['idGiaoKhoan'] ?? ''} - ${_getTenTaiSan(item['idGiaoKhoan'] ?? '')}',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
                                 ),
                               ),
                               DataCell(
-                                Text(
-                                  item['soLuongThucHienNgoaiKhoan']
-                                          ?.toString() ??
-                                      '',
+                                Container(
+                                  width: 120,
+                                  child: Text(
+                                    item['dinhMucGoc']?.toString() ?? '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 120,
+                                  child: Text(
+                                    item['heSoDieuChinh']?.toString() ?? '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 150,
+                                  child: Text(
+                                    item['soLuongKeHoachNgoaiKhoan']
+                                            ?.toString() ??
+                                        '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Container(
+                                  width: 150,
+                                  child: Text(
+                                    item['soLuongThucHienNgoaiKhoan']
+                                            ?.toString() ??
+                                        '',
+                                    softWrap: true,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
                               DataCell(
